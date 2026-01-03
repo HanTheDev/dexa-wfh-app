@@ -13,6 +13,7 @@ const typeorm_1 = require("@nestjs/typeorm");
 const database_config_1 = require("./config/database.config");
 const auth_module_1 = require("./auth/auth.module");
 const users_module_1 = require("./users/users.module");
+const app_controller_1 = require("./app.controller");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -30,7 +31,7 @@ exports.AppModule = AppModule = __decorate([
             auth_module_1.AuthModule,
             users_module_1.UsersModule,
         ],
-        controllers: [],
+        controllers: [app_controller_1.AppController],
         providers: [],
     })
 ], AppModule);

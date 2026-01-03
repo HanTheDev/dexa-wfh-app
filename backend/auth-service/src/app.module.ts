@@ -4,6 +4,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { getDatabaseConfig } from './config/database.config';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
+import { AppController } from './app.controller'; // Add this
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -17,7 +19,7 @@ import { UsersModule } from './users/users.module';
     AuthModule,
     UsersModule,
   ],
-  controllers: [],
+  controllers: [AppController], // Add this
   providers: [],
 })
 export class AppModule {}
