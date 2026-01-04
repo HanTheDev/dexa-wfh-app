@@ -2,3 +2,17 @@ node_modules/
 .env
 uploads/
 *.log
+/dist/
+
+# Dependencies
+node_modules/
+
+dist/
+build/
+
+.env.example
+
+.vscode/
+.idea/
+*.swp
+*.swo
