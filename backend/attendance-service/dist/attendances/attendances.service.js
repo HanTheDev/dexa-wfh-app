@@ -86,6 +86,7 @@ let AttendancesService = class AttendancesService {
         const queryBuilder = this.attendancesRepository
             .createQueryBuilder('attendance')
             .leftJoinAndSelect('attendance.employee', 'employee')
+            .leftJoinAndSelect('employee.user', 'user')
             .select([
             'attendance',
             'employee.id',
@@ -93,6 +94,9 @@ let AttendancesService = class AttendancesService {
             'employee.userId',
             'employee.position',
             'employee.department',
+            'user.id',
+            'user.fullName',
+            'user.email',
         ]);
         if (startDate && endDate) {
             queryBuilder.andWhere('attendance.date BETWEEN :startDate AND :endDate', {
@@ -156,15 +160,17 @@ let AttendancesService = class AttendancesService {
         today.setHours(0, 0, 0, 0);
         const tomorrow = new Date(today);
         tomorrow.setDate(tomorrow.getDate() + 1);
-        return this.attendancesRepository.find({
-            where: {
-                date: (0, typeorm_2.Between)(today, tomorrow),
-            },
-            relations: ['employee'],
-            order: {
-                clockIn: 'DESC',
-            },
-        });
+        const attendances = await this.attendancesRepository
+            .createQueryBuilder('attendance')
+            .leftJoinAndSelect('attendance.employee', 'employee')
+            .leftJoinAndSelect('employee.user', 'user')
+            .where('attendance.date BETWEEN :today AND :tomorrow', {
+            today,
+            tomorrow,
+        })
+            .orderBy('attendance.clockIn', 'DESC')
+            .getMany();
+        return attendances;
     }
     async checkTodayStatus(userId) {
         const employee = await this.employeesRepository.findOne({

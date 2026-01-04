@@ -14,6 +14,7 @@ const typeorm_1 = require("typeorm");
 let Employee = class Employee {
     id;
     userId;
+    user;
     employeeCode;
     position;
     department;
@@ -27,6 +28,11 @@ __decorate([
     (0, typeorm_1.Column)({ name: 'user_id' }),
     __metadata("design:type", Number)
 ], Employee.prototype, "userId", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)('User'),
+    (0, typeorm_1.JoinColumn)({ name: 'user_id' }),
+    __metadata("design:type", Object)
+], Employee.prototype, "user", void 0);
 __decorate([
     (0, typeorm_1.Column)({ name: 'employee_code', length: 20 }),
     __metadata("design:type", String)

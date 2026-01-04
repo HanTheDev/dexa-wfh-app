@@ -1,4 +1,4 @@
-import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 'typeorm';
 
 @Entity('employees')
 export class Employee {
@@ -7,6 +7,10 @@ export class Employee {
 
   @Column({ name: 'user_id' })
   userId: number;
+
+  @ManyToOne('User')
+  @JoinColumn({ name: 'user_id' })
+  user: any;
 
   @Column({ name: 'employee_code', length: 20 })
   employeeCode: string;

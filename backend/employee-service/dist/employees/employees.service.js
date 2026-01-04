@@ -187,11 +187,20 @@ let EmployeesService = class EmployeesService {
     async update(id, updateEmployeeDto) {
         const employee = await this.findOne(id);
         if (updateEmployeeDto.fullName) {
-            await this.usersRepository.update(employee.userId, {
-                fullName: updateEmployeeDto.fullName,
-            });
+            await this.usersRepository.update({ id: employee.userId }, { fullName: updateEmployeeDto.fullName });
         }
-        Object.assign(employee, updateEmployeeDto);
+        if (updateEmployeeDto.position)
+            employee.position = updateEmployeeDto.position;
+        if (updateEmployeeDto.department)
+            employee.department = updateEmployeeDto.department;
+        if (updateEmployeeDto.phone)
+            employee.phone = updateEmployeeDto.phone;
+        if (updateEmployeeDto.address !== undefined)
+            employee.address = updateEmployeeDto.address;
+        if (updateEmployeeDto.joinDate)
+            employee.joinDate = updateEmployeeDto.joinDate;
+        if (updateEmployeeDto.status)
+            employee.status = updateEmployeeDto.status;
         await this.employeesRepository.save(employee);
         return this.findOne(id);
     }

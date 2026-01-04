@@ -8,10 +8,11 @@ import { Attendance } from './entities/attendance.entity';
 import { Employee } from '../employees/entities/employee.entity';
 import { JwtStrategy } from '../auth/strategies/jwt.strategy';
 import { RolesGuard } from '../auth/guards/roles.guard';
+import { User } from '../users/entities/user.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Attendance, Employee]),
+    TypeOrmModule.forFeature([Attendance, Employee, User]),
     PassportModule,
     MulterModule.register({
       dest: './uploads/attendances',

@@ -189,13 +189,26 @@ export class EmployeesService {
 
     // Update user data if fullName is provided
     if (updateEmployeeDto.fullName) {
-      await this.usersRepository.update(employee.userId, {
-        fullName: updateEmployeeDto.fullName,
-      });
+      await this.usersRepository.update(
+        { id: employee.userId }, // FIX: Use object instead of plain number
+        { fullName: updateEmployeeDto.fullName },
+      );
     }
 
-    // Update employee data
-    Object.assign(employee, updateEmployeeDto);
+    // Update employee data - assign to object first
+    if (updateEmployeeDto.position)
+      employee.position = updateEmployeeDto.position;
+    if (updateEmployeeDto.department)
+      employee.department = updateEmployeeDto.department;
+    if (updateEmployeeDto.phone) employee.phone = updateEmployeeDto.phone;
+    if (updateEmployeeDto.address !== undefined)
+      employee.address = updateEmployeeDto.address;
+    if (updateEmployeeDto.joinDate)
+      employee.joinDate = updateEmployeeDto.joinDate as any;
+    if (updateEmployeeDto.status)
+      employee.status = updateEmployeeDto.status as any;
+
+    // Save the updated employee
     await this.employeesRepository.save(employee);
 
     return this.findOne(id);
