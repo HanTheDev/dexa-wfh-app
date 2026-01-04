@@ -1,14 +1,14 @@
-import { uploadFile } from './api';
-import api from './api';
-import { Attendance, PaginatedResponse } from '../types';
-import { ENDPOINTS, API_BASE_URL } from '../utils/constants';
+import { uploadFile } from "./api";
+import api from "./api";
+import { Attendance, PaginatedResponse } from "../types";
+import { ENDPOINTS, API_BASE_URL } from "../utils/constants";
 
 export const attendanceService = {
   clockIn: async (photo: File, notes?: string): Promise<Attendance> => {
     const formData = new FormData();
-    formData.append('photo', photo);
+    formData.append("photo", photo);
     if (notes) {
-      formData.append('notes', notes);
+      formData.append("notes", notes);
     }
 
     const response = await uploadFile(ENDPOINTS.ATTENDANCES.CLOCK_IN, formData);
@@ -65,6 +65,17 @@ export const attendanceService = {
   },
 
   getPhotoUrl: (photoUrl: string): string => {
-    return `${API_BASE_URL.replace('/api', '')}${photoUrl}`;
+    // Remove '/api' from base URL and construct full URL
+    const baseUrl =
+      import.meta.env.VITE_API_BASE_URL?.replace("/api", "") ||
+      "http://localhost:4000";
+
+    // If photoUrl already starts with http, return as is
+    if (photoUrl.startsWith("http")) {
+      return photoUrl;
+    }
+
+    // Otherwise, construct the full URL
+    return `${baseUrl}${photoUrl}`;
   },
 };
