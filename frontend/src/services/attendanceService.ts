@@ -64,18 +64,31 @@ export const attendanceService = {
     return response.data;
   },
 
+  // FIX: Perbaikan getPhotoUrl untuk menangani berbagai format URL
   getPhotoUrl: (photoUrl: string): string => {
-    // Remove '/api' from base URL and construct full URL
-    const baseUrl =
-      import.meta.env.VITE_API_BASE_URL?.replace("/api", "") ||
-      "http://localhost:4000";
-
-    // If photoUrl already starts with http, return as is
-    if (photoUrl.startsWith("http")) {
+    if (!photoUrl) {
+      console.warn('Empty photoUrl provided');
+      return '';
+    }
+    
+    console.log('[getPhotoUrl] Input photoUrl:', photoUrl);
+    
+    // Jika sudah full URL (dimulai dengan http/https)
+    if (photoUrl.startsWith('http://') || photoUrl.startsWith('https://')) {
+      console.log('[getPhotoUrl] Already full URL:', photoUrl);
       return photoUrl;
     }
 
-    // Otherwise, construct the full URL
-    return `${baseUrl}${photoUrl}`;
+    // Attendance service port adalah 4003, bukan gateway port
+    // Static files di-serve langsung dari attendance service
+    const attendanceServiceUrl = 'http://localhost:4003';
+
+    // Pastikan photoUrl dimulai dengan /
+    const cleanPhotoUrl = photoUrl.startsWith('/') ? photoUrl : `/${photoUrl}`;
+
+    const fullUrl = `${attendanceServiceUrl}${cleanPhotoUrl}`;
+    console.log('[getPhotoUrl] Constructed URL:', fullUrl);
+    
+    return fullUrl;
   },
 };

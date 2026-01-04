@@ -18,9 +18,10 @@ import {
   Typography,
   MenuItem,
   Grid,
+  Button,
 } from "@mui/material";
-import { Visibility, FilterList } from "@mui/icons-material";
-import { format } from "date-fns";
+import { Visibility, FilterList, Clear } from "@mui/icons-material";
+import { format, subDays } from "date-fns";
 import { Attendance } from "../../types";
 import { attendanceService } from "../../services/attendanceService";
 import { Loading } from "../common/Loading";
@@ -34,9 +35,13 @@ export const AttendanceMonitor: React.FC = () => {
   const [total, setTotal] = useState(0);
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
 
-  // Filters
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  // Filters - default 7 hari terakhir
+  const [startDate, setStartDate] = useState(
+    format(subDays(new Date(), 7), 'yyyy-MM-dd')
+  );
+  const [endDate, setEndDate] = useState(
+    format(new Date(), 'yyyy-MM-dd')
+  );
   const [status, setStatus] = useState("");
 
   useEffect(() => {
@@ -55,9 +60,9 @@ export const AttendanceMonitor: React.FC = () => {
       });
       setAttendances(response.data);
       setTotal(response.meta.total);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to fetch attendances:", error);
-      toast.error("Failed to load attendances");
+      toast.error(error.response?.data?.message || "Failed to load attendances");
     } finally {
       setIsLoading(false);
     }
@@ -83,8 +88,8 @@ export const AttendanceMonitor: React.FC = () => {
   };
 
   const handleClearFilters = () => {
-    setStartDate("");
-    setEndDate("");
+    setStartDate(format(subDays(new Date(), 7), 'yyyy-MM-dd'));
+    setEndDate(format(new Date(), 'yyyy-MM-dd'));
     setStatus("");
     setPage(0);
   };
@@ -115,7 +120,7 @@ export const AttendanceMonitor: React.FC = () => {
                 setPage(0);
               }}
               inputProps={{
-                max: new Date().toISOString().split("T")[0],
+                max: endDate || new Date().toISOString().split("T")[0],
               }}
             />
           </Grid>
@@ -156,23 +161,15 @@ export const AttendanceMonitor: React.FC = () => {
             </TextField>
           </Grid>
           <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-            <Box
-              sx={{
-                display: "flex",
-                gap: 1,
-                height: "100%",
-                alignItems: "center",
-              }}
+            <Button
+              fullWidth
+              variant="outlined"
+              startIcon={<Clear />}
+              onClick={handleClearFilters}
+              sx={{ height: '40px' }}
             >
-              <Typography
-                variant="body2"
-                color="primary"
-                sx={{ cursor: "pointer", textDecoration: "underline" }}
-                onClick={handleClearFilters}
-              >
-                Clear Filters
-              </Typography>
-            </Box>
+              Clear Filters
+            </Button>
           </Grid>
         </Grid>
       </Paper>
@@ -282,6 +279,10 @@ export const AttendanceMonitor: React.FC = () => {
               component="img"
               src={selectedPhoto}
               alt="Attendance proof"
+              onError={(e) => {
+                console.error('Image failed to load:', selectedPhoto);
+                e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="300"%3E%3Crect fill="%23ddd" width="400" height="300"/%3E%3Ctext fill="%23999" font-family="sans-serif" font-size="20" dy="10.5" font-weight="bold" x="50%25" y="50%25" text-anchor="middle"%3EImage not found%3C/text%3E%3C/svg%3E';
+              }}
               sx={{
                 width: "100%",
                 maxHeight: "70vh",
