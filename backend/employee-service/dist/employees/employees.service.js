@@ -185,30 +185,50 @@ let EmployeesService = class EmployeesService {
         return employee;
     }
     async update(id, updateEmployeeDto) {
-        const employee = await this.findOne(id);
+        const employee = await this.employeesRepository.findOne({
+            where: { id },
+            relations: ['user'],
+        });
+        if (!employee) {
+            throw new common_1.NotFoundException(`Employee with ID ${id} not found`);
+        }
         if (updateEmployeeDto.fullName) {
             await this.usersRepository.update({ id: employee.userId }, { fullName: updateEmployeeDto.fullName });
         }
-        if (updateEmployeeDto.position)
-            employee.position = updateEmployeeDto.position;
-        if (updateEmployeeDto.department)
-            employee.department = updateEmployeeDto.department;
-        if (updateEmployeeDto.phone)
-            employee.phone = updateEmployeeDto.phone;
-        if (updateEmployeeDto.address !== undefined)
-            employee.address = updateEmployeeDto.address;
-        if (updateEmployeeDto.joinDate)
-            employee.joinDate = updateEmployeeDto.joinDate;
-        if (updateEmployeeDto.status)
-            employee.status = updateEmployeeDto.status;
-        await this.employeesRepository.save(employee);
+        const updateData = {};
+        if (updateEmployeeDto.position !== undefined) {
+            updateData.position = updateEmployeeDto.position;
+        }
+        if (updateEmployeeDto.department !== undefined) {
+            updateData.department = updateEmployeeDto.department;
+        }
+        if (updateEmployeeDto.phone !== undefined) {
+            updateData.phone = updateEmployeeDto.phone;
+        }
+        if (updateEmployeeDto.address !== undefined) {
+            updateData.address = updateEmployeeDto.address;
+        }
+        if (updateEmployeeDto.joinDate !== undefined) {
+            updateData.joinDate = updateEmployeeDto.joinDate;
+        }
+        if (updateEmployeeDto.status !== undefined) {
+            updateData.status = updateEmployeeDto.status;
+        }
+        if (Object.keys(updateData).length > 0) {
+            await this.employeesRepository.update({ id }, updateData);
+        }
         return this.findOne(id);
     }
     async remove(id) {
-        const employee = await this.findOne(id);
-        employee.status = 'inactive';
-        await this.employeesRepository.save(employee);
-        await this.usersRepository.update(employee.userId, { isActive: false });
+        const employee = await this.employeesRepository.findOne({
+            where: { id },
+            relations: ['user'],
+        });
+        if (!employee) {
+            throw new common_1.NotFoundException(`Employee with ID ${id} not found`);
+        }
+        await this.employeesRepository.delete({ id });
+        await this.usersRepository.delete({ id: employee.userId });
         return {
             message: 'Employee deleted successfully',
             id,

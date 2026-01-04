@@ -73,8 +73,9 @@ let GatewayController = class GatewayController {
         }
     }
     async proxyAttendances(req, res) {
-        const path = req.url.replace('/api/attendances', '/attendances');
-        return this.proxyRequest(req, res, this.attendanceServiceUrl, path);
+        const path = req.url.replace(/^\/api\/attendances/, '/attendances');
+        const finalPath = path.startsWith('/attendances') ? path : `/attendances${path}`;
+        return this.proxyRequest(req, res, this.attendanceServiceUrl, finalPath);
     }
     async proxyRequest(req, res, serviceUrl, customPath) {
         try {
@@ -165,8 +166,7 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], GatewayController.prototype, "proxyClockIn", null);
 __decorate([
-    (0, common_1.All)('attendances/*path'),
-    (0, common_1.All)('attendances*'),
+    (0, common_1.All)(['attendances', 'attendances/*']),
     __param(0, (0, common_1.Req)()),
     __param(1, (0, common_1.Res)()),
     __metadata("design:type", Function),

@@ -141,7 +141,6 @@ export class EmployeesService {
           fullName: true,
           role: true,
           isActive: true,
-          // no password
         },
       },
     });
@@ -172,7 +171,6 @@ export class EmployeesService {
           fullName: true,
           role: true,
           isActive: true,
-          // no password
         },
       },
     });
@@ -185,44 +183,70 @@ export class EmployeesService {
   }
 
   async update(id: number, updateEmployeeDto: UpdateEmployeeDto) {
-    const employee = await this.findOne(id);
+    // Get employee first
+    const employee = await this.employeesRepository.findOne({
+      where: { id },
+      relations: ['user'],
+    });
 
-    // Update user data if fullName is provided
+    if (!employee) {
+      throw new NotFoundException(`Employee with ID ${id} not found`);
+    }
+
+    // Update user data jika fullName disediakan
     if (updateEmployeeDto.fullName) {
       await this.usersRepository.update(
-        { id: employee.userId }, // FIX: Use object instead of plain number
-        { fullName: updateEmployeeDto.fullName },
+        { id: employee.userId },
+        { fullName: updateEmployeeDto.fullName }
       );
     }
 
-    // Update employee data - assign to object first
-    if (updateEmployeeDto.position)
-      employee.position = updateEmployeeDto.position;
-    if (updateEmployeeDto.department)
-      employee.department = updateEmployeeDto.department;
-    if (updateEmployeeDto.phone) employee.phone = updateEmployeeDto.phone;
-    if (updateEmployeeDto.address !== undefined)
-      employee.address = updateEmployeeDto.address;
-    if (updateEmployeeDto.joinDate)
-      employee.joinDate = updateEmployeeDto.joinDate as any;
-    if (updateEmployeeDto.status)
-      employee.status = updateEmployeeDto.status as any;
+    // Build update data for employee
+    const updateData: any = {};
+    
+    if (updateEmployeeDto.position !== undefined) {
+      updateData.position = updateEmployeeDto.position;
+    }
+    if (updateEmployeeDto.department !== undefined) {
+      updateData.department = updateEmployeeDto.department;
+    }
+    if (updateEmployeeDto.phone !== undefined) {
+      updateData.phone = updateEmployeeDto.phone;
+    }
+    if (updateEmployeeDto.address !== undefined) {
+      updateData.address = updateEmployeeDto.address;
+    }
+    if (updateEmployeeDto.joinDate !== undefined) {
+      updateData.joinDate = updateEmployeeDto.joinDate;
+    }
+    if (updateEmployeeDto.status !== undefined) {
+      updateData.status = updateEmployeeDto.status;
+    }
 
-    // Save the updated employee
-    await this.employeesRepository.save(employee);
+    // Only update if there's data to update
+    if (Object.keys(updateData).length > 0) {
+      await this.employeesRepository.update({ id }, updateData);
+    }
 
     return this.findOne(id);
   }
 
   async remove(id: number) {
-    const employee = await this.findOne(id);
+    const employee = await this.employeesRepository.findOne({
+      where: { id },
+      relations: ['user'],
+    });
 
-    // Soft delete: set status to inactive
-    employee.status = 'inactive' as any;
-    await this.employeesRepository.save(employee);
+    if (!employee) {
+      throw new NotFoundException(`Employee with ID ${id} not found`);
+    }
 
-    // Also deactivate user
-    await this.usersRepository.update(employee.userId, { isActive: false });
+    // Hard delete: hapus employee dan user
+    // Karena ada foreign key CASCADE, delete employee akan otomatis delete attendances
+    await this.employeesRepository.delete({ id });
+    
+    // Delete user juga
+    await this.usersRepository.delete({ id: employee.userId });
 
     return {
       message: 'Employee deleted successfully',

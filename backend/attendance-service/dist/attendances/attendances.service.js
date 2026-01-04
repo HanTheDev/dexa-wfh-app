@@ -136,7 +136,7 @@ let AttendancesService = class AttendancesService {
     async findOne(id) {
         const attendance = await this.attendancesRepository.findOne({
             where: { id },
-            relations: ['employee'],
+            relations: ['employee', 'employee.user'],
         });
         if (!attendance) {
             throw new common_1.NotFoundException(`Attendance with ID ${id} not found`);
@@ -160,16 +160,15 @@ let AttendancesService = class AttendancesService {
         today.setHours(0, 0, 0, 0);
         const tomorrow = new Date(today);
         tomorrow.setDate(tomorrow.getDate() + 1);
-        const attendances = await this.attendancesRepository
-            .createQueryBuilder('attendance')
-            .leftJoinAndSelect('attendance.employee', 'employee')
-            .leftJoinAndSelect('employee.user', 'user')
-            .where('attendance.date BETWEEN :today AND :tomorrow', {
-            today,
-            tomorrow,
-        })
-            .orderBy('attendance.clockIn', 'DESC')
-            .getMany();
+        const attendances = await this.attendancesRepository.find({
+            where: {
+                date: (0, typeorm_2.Between)(today, tomorrow),
+            },
+            relations: ['employee', 'employee.user'],
+            order: {
+                clockIn: 'DESC',
+            },
+        });
         return attendances;
     }
     async checkTodayStatus(userId) {
@@ -188,6 +187,7 @@ let AttendancesService = class AttendancesService {
                 employeeId: employee.id,
                 date: (0, typeorm_2.Between)(today, tomorrow),
             },
+            relations: ['employee', 'employee.user'],
         });
         return {
             hasClockedIn: !!attendance,

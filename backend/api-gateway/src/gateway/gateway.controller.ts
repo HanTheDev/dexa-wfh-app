@@ -48,16 +48,11 @@ export class GatewayController {
     return this.proxyRequest(req, res, this.authServiceUrl, path);
   }
 
-  // Menggunakan array untuk menangkap 'employees' (list) DAN 'employees/*' (detail/id)
+  // Employee routes - CRITICAL: Order matters!
   @All(['employees', 'employees/*'])
   async proxyEmployees(@Req() req: Request, @Res() res: Response) {
-    // Menghapus prefix /api/employees dan menggantinya dengan /employees
-    // Menggunakan regex untuk memastikan hanya mengganti di awal string
     const path = req.url.replace(/^\/api\/employees/, '/employees');
-    
-    // Jika req.url tidak memiliki /api (karena global prefix), pastikan path tetap valid
     const finalPath = path.startsWith('/employees') ? path : `/employees${path}`;
-
     return this.proxyRequest(req, res, this.employeeServiceUrl, finalPath);
   }
 
@@ -103,12 +98,12 @@ export class GatewayController {
     }
   }
 
-  // Attendance routes
-  @All('attendances/*path')
-  @All('attendances*')
+  // Attendance routes - CRITICAL: Must be after clock-in
+  @All(['attendances', 'attendances/*'])
   async proxyAttendances(@Req() req: Request, @Res() res: Response) {
-    const path = req.url.replace('/api/attendances', '/attendances');
-    return this.proxyRequest(req, res, this.attendanceServiceUrl, path);
+    const path = req.url.replace(/^\/api\/attendances/, '/attendances');
+    const finalPath = path.startsWith('/attendances') ? path : `/attendances${path}`;
+    return this.proxyRequest(req, res, this.attendanceServiceUrl, finalPath);
   }
 
   private async proxyRequest(

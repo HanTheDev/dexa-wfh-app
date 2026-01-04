@@ -5,7 +5,7 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between, MoreThanOrEqual, LessThanOrEqual } from 'typeorm';
+import { Repository, Between } from 'typeorm';
 import { Attendance, AttendanceStatus } from './entities/attendance.entity';
 import { Employee } from '../employees/entities/employee.entity';
 import { ClockInDto } from './dto/clock-in.dto';
@@ -20,6 +20,7 @@ export class AttendancesService {
     @InjectRepository(Employee)
     private employeesRepository: Repository<Employee>,
   ) {}
+  
   async clockIn(userId: number, clockInDto: ClockInDto, photoPath: string) {
     // Find employee by userId
     const employee = await this.employeesRepository.findOne({
@@ -60,6 +61,7 @@ export class AttendancesService {
     const saved = await this.attendancesRepository.save(attendance);
     return this.findOne(saved.id);
   }
+  
   async clockOut(id: number, userId: number, clockOutDto: ClockOutDto) {
     const attendance = await this.attendancesRepository.findOne({
       where: { id },
@@ -94,6 +96,7 @@ export class AttendancesService {
     await this.attendancesRepository.save(attendance);
     return this.findOne(id);
   }
+  
   async findAll(query: QueryAttendanceDto) {
     const {
       startDate,
@@ -103,6 +106,8 @@ export class AttendancesService {
       page = 1,
       limit = 10,
     } = query;
+    
+    // FIX: Perbaiki query builder dengan alias yang benar
     const queryBuilder = this.attendancesRepository
       .createQueryBuilder('attendance')
       .leftJoinAndSelect('attendance.employee', 'employee')
@@ -163,10 +168,11 @@ export class AttendancesService {
       },
     };
   }
+  
   async findOne(id: number) {
     const attendance = await this.attendancesRepository.findOne({
       where: { id },
-      relations: ['employee'],
+      relations: ['employee', 'employee.user'],
     });
     if (!attendance) {
       throw new NotFoundException(`Attendance with ID ${id} not found`);
@@ -174,9 +180,11 @@ export class AttendancesService {
 
     return attendance;
   }
+  
   async findByEmployee(employeeId: number, query: QueryAttendanceDto) {
     return this.findAll({ ...query, employeeId });
   }
+  
   async findMyAttendances(userId: number, query: QueryAttendanceDto) {
     const employee = await this.employeesRepository.findOne({
       where: { userId },
@@ -187,26 +195,27 @@ export class AttendancesService {
 
     return this.findAll({ ...query, employeeId: employee.id });
   }
+  
   async getTodayAttendances() {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    // FIX: Include employee with user relation
-    const attendances = await this.attendancesRepository
-      .createQueryBuilder('attendance')
-      .leftJoinAndSelect('attendance.employee', 'employee')
-      .leftJoinAndSelect('employee.user', 'user')
-      .where('attendance.date BETWEEN :today AND :tomorrow', {
-        today,
-        tomorrow,
-      })
-      .orderBy('attendance.clockIn', 'DESC')
-      .getMany();
+    // FIX: Gunakan findMany dengan relations yang proper
+    const attendances = await this.attendancesRepository.find({
+      where: {
+        date: Between(today, tomorrow),
+      },
+      relations: ['employee', 'employee.user'],
+      order: {
+        clockIn: 'DESC',
+      },
+    });
 
     return attendances;
   }
+  
   async checkTodayStatus(userId: number) {
     const employee = await this.employeesRepository.findOne({
       where: { userId },
@@ -225,6 +234,7 @@ export class AttendancesService {
         employeeId: employee.id,
         date: Between(today, tomorrow),
       },
+      relations: ['employee', 'employee.user'],
     });
 
     return {
@@ -232,6 +242,7 @@ export class AttendancesService {
       attendance: attendance || null,
     };
   }
+  
   private calculateStatus(clockIn: Date): AttendanceStatus {
     const hour = clockIn.getHours();
     // Late if clock in after 9 AM
