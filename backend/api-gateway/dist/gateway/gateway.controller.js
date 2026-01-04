@@ -42,8 +42,9 @@ let GatewayController = class GatewayController {
         return this.proxyRequest(req, res, this.authServiceUrl, path);
     }
     async proxyEmployees(req, res) {
-        const path = req.url.replace('/api/employees', '/employees');
-        return this.proxyRequest(req, res, this.employeeServiceUrl, path);
+        const path = req.url.replace(/^\/api\/employees/, '/employees');
+        const finalPath = path.startsWith('/employees') ? path : `/employees${path}`;
+        return this.proxyRequest(req, res, this.employeeServiceUrl, finalPath);
     }
     async proxyClockIn(req, res, file) {
         try {
@@ -146,8 +147,7 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], GatewayController.prototype, "proxyAuth", null);
 __decorate([
-    (0, common_1.All)('employees/*path'),
-    (0, common_1.All)('employees*'),
+    (0, common_1.All)(['employees', 'employees/*']),
     __param(0, (0, common_1.Req)()),
     __param(1, (0, common_1.Res)()),
     __metadata("design:type", Function),

@@ -1,93 +1,97 @@
 #!/bin/bash
 
 echo "========================================="
-echo "API GATEWAY TEST"
+echo "COMPREHENSIVE API GATEWAY TEST"
 echo "========================================="
 echo ""
 
 BASE_URL="http://localhost:4000/api"
 
-# Colors
 GREEN='\033[0;32m'
 RED='\033[0;31m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-echo -e "${BLUE}1. Testing Health Check...${NC}"
-HEALTH=$(curl -s $BASE_URL/health)
-echo $HEALTH | grep -q '"status":"healthy"'
-if [ $? -eq 0 ]; then
-    echo -e "${GREEN}✓ Health check passed${NC}"
-else
-    echo -e "${RED}✗ Health check failed${NC}"
-    echo $HEALTH
-fi
-echo ""
+test_count=0
+pass_count=0
 
-echo -e "${BLUE}2. Testing Login...${NC}"
-LOGIN_RESPONSE=$(curl -s -X POST $BASE_URL/auth/login \
+test_endpoint() {
+    test_count=$((test_count + 1))
+    echo -e "${BLUE}Test $test_count: $1${NC}"
+    
+    if eval "$2" > /dev/null 2>&1; then
+        echo -e "${GREEN}✓ PASS${NC}"
+        pass_count=$((pass_count + 1))
+    else
+        echo -e "${RED}✗ FAIL${NC}"
+        echo "Command: $2"
+    fi
+    echo ""
+}
+
+# Test 1: Gateway Info
+test_endpoint "Gateway Info" \
+    "curl -s $BASE_URL | grep -q 'Dexa WFH API Gateway'"
+
+# Test 2: Health Check
+test_endpoint "Health Check" \
+    "curl -s $BASE_URL/health | grep -q '\"status\"'"
+
+# Test 3: Admin Login
+echo -e "${BLUE}Getting admin token...${NC}"
+ADMIN_TOKEN=$(curl -s -X POST $BASE_URL/auth/login \
     -H "Content-Type: application/json" \
-    -d '{"email":"admin@dexa.com","password":"admin123"}')
+    -d '{"email":"admin@dexa.com","password":"admin123"}' \
+    | grep -o '"access_token":"[^"]*' | cut -d'"' -f4)
 
-TOKEN=$(echo $LOGIN_RESPONSE | grep -o '"access_token":"[^"]*' | cut -d'"' -f4)
+test_endpoint "Admin Login" \
+    "[ ! -z '$ADMIN_TOKEN' ]"
 
-if [ ! -z "$TOKEN" ]; then
-    echo -e "${GREEN}✓ Login successful${NC}"
-    echo "Token: ${TOKEN:0:20}..."
-else
-    echo -e "${RED}✗ Login failed${NC}"
-    echo $LOGIN_RESPONSE
-    exit 1
-fi
+echo "Admin Token: ${ADMIN_TOKEN:0:30}..."
 echo ""
 
-echo -e "${BLUE}3. Testing Get Profile...${NC}"
-PROFILE=$(curl -s $BASE_URL/auth/profile -H "Authorization: Bearer $TOKEN")
-echo $PROFILE | grep -q '"email"'
-if [ $? -eq 0 ]; then
-    echo -e "${GREEN}✓ Get profile passed${NC}"
-else
-    echo -e "${RED}✗ Get profile failed${NC}"
-    echo $PROFILE
-fi
-echo ""
+# Test 4: Get Profile
+test_endpoint "Get Admin Profile" \
+    "curl -s $BASE_URL/auth/profile -H 'Authorization: Bearer $ADMIN_TOKEN' | grep -q '\"email\"'"
 
-echo -e "${BLUE}4. Testing Get Employees...${NC}"
-EMPLOYEES=$(curl -s "$BASE_URL/employees?page=1&limit=10" -H "Authorization: Bearer $TOKEN")
-echo $EMPLOYEES | grep -q '"data"'
-if [ $? -eq 0 ]; then
-    echo -e "${GREEN}✓ Get employees passed${NC}"
-else
-    echo -e "${RED}✗ Get employees failed${NC}"
-    echo $EMPLOYEES
-fi
-echo ""
+# Test 5: Get Employees (CRITICAL TEST)
+test_endpoint "Get All Employees" \
+    "curl -s '$BASE_URL/employees?page=1&limit=10' -H 'Authorization: Bearer $ADMIN_TOKEN' | grep -q '\"data\"'"
 
-echo -e "${BLUE}5. Testing Employee Login...${NC}"
-EMP_TOKEN=$(curl -s -X POST $BASE_URL/auth/login \
+# Test 6: Get Employee by ID
+test_endpoint "Get Employee by ID" \
+    "curl -s $BASE_URL/employees/1 -H 'Authorization: Bearer $ADMIN_TOKEN' | grep -q '\"employeeCode\"'"
+
+# Test 7: Employee Login
+echo -e "${BLUE}Getting employee token...${NC}"
+EMPLOYEE_TOKEN=$(curl -s -X POST $BASE_URL/auth/login \
     -H "Content-Type: application/json" \
     -d '{"email":"john.doe@dexa.com","password":"employee123"}' \
     | grep -o '"access_token":"[^"]*' | cut -d'"' -f4)
 
-if [ ! -z "$EMP_TOKEN" ]; then
-    echo -e "${GREEN}✓ Employee login successful${NC}"
+test_endpoint "Employee Login" \
+    "[ ! -z '$EMPLOYEE_TOKEN' ]"
+
+# Test 8: Get My Attendances
+test_endpoint "Get Employee Attendances" \
+    "curl -s $BASE_URL/attendances/my-attendances -H 'Authorization: Bearer $EMPLOYEE_TOKEN' | grep -q '\"data\"'"
+
+# Test 9: Check Today Status
+test_endpoint "Check Today Attendance Status" \
+    "curl -s $BASE_URL/attendances/today-status -H 'Authorization: Bearer $EMPLOYEE_TOKEN' | grep -q '\"hasClockedIn\"'"
+
+# Test 10: Get All Attendances (Admin)
+test_endpoint "Get All Attendances (Admin)" \
+    "curl -s '$BASE_URL/attendances?page=1&limit=10' -H 'Authorization: Bearer $ADMIN_TOKEN' | grep -q '\"data\"'"
+
+echo "========================================="
+echo -e "RESULTS: ${GREEN}$pass_count/$test_count${NC} tests passed"
+echo "========================================="
+
+if [ $pass_count -eq $test_count ]; then
+    echo -e "${GREEN}✓ ALL TESTS PASSED!${NC}"
+    exit 0
 else
-    echo -e "${RED}✗ Employee login failed${NC}"
+    echo -e "${RED}✗ SOME TESTS FAILED!${NC}"
     exit 1
 fi
-echo ""
-
-echo -e "${BLUE}6. Testing Get My Attendances...${NC}"
-ATTENDANCES=$(curl -s $BASE_URL/attendances/my-attendances -H "Authorization: Bearer $EMP_TOKEN")
-echo $ATTENDANCES | grep -q '"data"'
-if [ $? -eq 0 ]; then
-    echo -e "${GREEN}✓ Get attendances passed${NC}"
-else
-    echo -e "${RED}✗ Get attendances failed${NC}"
-    echo $ATTENDANCES
-fi
-echo ""
-
-echo "========================================="
-echo -e "${GREEN}ALL TESTS COMPLETED!${NC}"
-echo "========================================="

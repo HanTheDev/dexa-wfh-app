@@ -48,12 +48,17 @@ export class GatewayController {
     return this.proxyRequest(req, res, this.authServiceUrl, path);
   }
 
-  // Employee routes
-  @All('employees/*path')
-  @All('employees*')
+  // Menggunakan array untuk menangkap 'employees' (list) DAN 'employees/*' (detail/id)
+  @All(['employees', 'employees/*'])
   async proxyEmployees(@Req() req: Request, @Res() res: Response) {
-    const path = req.url.replace('/api/employees', '/employees');
-    return this.proxyRequest(req, res, this.employeeServiceUrl, path);
+    // Menghapus prefix /api/employees dan menggantinya dengan /employees
+    // Menggunakan regex untuk memastikan hanya mengganti di awal string
+    const path = req.url.replace(/^\/api\/employees/, '/employees');
+    
+    // Jika req.url tidak memiliki /api (karena global prefix), pastikan path tetap valid
+    const finalPath = path.startsWith('/employees') ? path : `/employees${path}`;
+
+    return this.proxyRequest(req, res, this.employeeServiceUrl, finalPath);
   }
 
   // Attendance clock-in (special handling for file upload)
