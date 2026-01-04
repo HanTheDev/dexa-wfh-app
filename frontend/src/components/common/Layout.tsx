@@ -7,20 +7,36 @@ interface LayoutProps {
   maxWidth?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | false;
 }
 
-export const Layout: React.FC<LayoutProps> = ({ children, maxWidth = 'lg' }) => {
+export const Layout: React.FC<LayoutProps> = ({ children, maxWidth = 'xl' }) => {
   return (
-    <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+    <Box 
+      sx={{ 
+        display: 'flex', 
+        flexDirection: 'column', 
+        minHeight: '100vh',
+        bgcolor: 'background.default',
+      }}
+    >
       <Navbar />
-      <Container
-        maxWidth={maxWidth}
+      <Box
+        component="main"
         sx={{
-          mt: 4,
-          mb: 4,
           flex: 1,
+          width: '100%',
         }}
       >
-        {children}
-      </Container>
+        <Container
+          maxWidth={maxWidth}
+          sx={{
+            mt: 4,
+            mb: 4,
+            mx: 'auto', // Ini yang penting untuk center
+            px: { xs: 2, sm: 3, md: 4 },
+          }}
+        >
+          {children}
+        </Container>
+      </Box>
     </Box>
   );
 };
